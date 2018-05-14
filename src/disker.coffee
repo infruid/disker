@@ -5,14 +5,16 @@ GenericPool = require "generic-pool"
 module.exports = class Disker
 
   constructor: (options) ->
-    {port, host, poolSize} = options
+    {host, port, poolSize} = options
 
+    host ?= "127.0.0.1"
+    port ?= 6379
     poolSize ?= 10
     @_id = randomKey(5)
     @_ending = false
     @_isSingleton = if options.isSingleton? then options.isSingleton? else false
     @_blockTimeout = if options.blockTimeout? then options.blockTimeout else 1
-    @_timeoutMonitorFrequency = if options.timeoutMonitorFrequency? then options.timeoutMonitorFrequency else 1000
+    @_timeoutMonitorFrequency = 1000 * (if options.timeoutMonitorFrequency? then options.timeoutMonitorFrequency else 1)
     @_timeoutMonitor = null
     @_messageHandlers = {}
     @_timeoutHandlers = {}
