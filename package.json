@@ -1,8 +1,8 @@
 {
   "name": "disker",
   "version": "1.0.0",
-  "description": "Dispatcher-worker implementation using Redis. This is inspired by Pandastrike's durable channel",
-  "main": "lib/index.js",
+  "description": "Dispatcher-worker implementation using Redis. This is inspired by Pandastrike's mutual implementation of DurableChannel",
+  "main": "dist/index.js",
   "scripts": {
     "prepare": "coffee -m -o dist/ -c src/*.coffee",
     "test": "mocha"
