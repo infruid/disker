@@ -28,11 +28,11 @@ Similarly, create a worker:
 
 ```javascript
   dispatcher.send(
-      { "sender": "my-dispatcher", "receiver": "my-worker", "content": "hello worker" }
+    { "sender": "my-dispatcher", "receiver": "my-worker", "content": "hello worker" }
   ).then(function() {
     console.log("Successfully sent message");
   }).catch(function(err) {
-    console.log("Failed to send message: ${err}", err);
+    console.log("Failed to send message: ${err}");
   });
 ```
 
@@ -41,15 +41,17 @@ Similarly, create a worker:
 ```javascript
   // Register a message handler to receive messages
   worker.registerMessageHandler({ 
-    "receiver": "my-worker", "handler": function(message) ->
+    "receiver": "my-worker", 
+    "handler": function(message) {
       // We have received a message, lets reply to the message
       worker.reply(
-        { "sender": "my-worker", "receiver": "my-dispatcher", "message", "response": "hello dispatcher" }
+        { "sender": "my-worker", "receiver": "my-dispatcher", "message": message, "response": "hello dispatcher" }
       ).then(function() { 
         console.log("Successfully replied to message"); 
       }).catch(function(err) {
         console.log("Failed to reply to message");
       });
+    }
   }).then(function() {
     console.log("Successfully registered message handler");
   }).catch(function(err) {
@@ -64,16 +66,19 @@ Similarly, create a worker:
 ```javascript
   // Send a message with a timeout. Timeout is specified in milliseconds
   dispatcher.send(
-      { "sender": "my-dispatcher", "receiver": "my-worker", "content": "hello worker", "timeout": 1000 }
+    { "sender": "my-dispatcher", "receiver": "my-worker", "content": "hello worker", "timeout": 1000 }
   ).then(function() {
     console.log("Successfully sent message");
   }).catch(function(err) {
-    console.log("Failed to send message: ${err}", err);
+    console.log("Failed to send message: ${err}");
   });
 
   // Register a timeout handler to receive timeouts
-  dispatcher.registerTimeoutHandler("sender": "my-dispatcher", "handler": function(message) {
-    console.log("Successfully received a timeout");
+  dispatcher.registerTimeoutHandler({
+    "sender": "my-dispatcher", 
+    "handler": function(message) {
+      console.log("Successfully received a timeout");
+    }
   }).then(function() {
     console.log("Successfully registered timeout handler");
   }).catch(function(err) {
