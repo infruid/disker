@@ -1,0 +1,30 @@
+{
+  "name": "disker",
+  "version": "1.0.0",
+  "description": "Dispatcher-worker implementation using Redis. This is inspired by Pandastrike's durable channel",
+  "main": "lib/index.js",
+  "scripts": {
+    "prepare": "coffee -m -o dist/ -c src/*.coffee",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/infruid/disker.git"
+  },
+  "keywords": [
+    "dispatcher",
+    "worker",
+    "redis"
+  ],
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "generic-pool": "~3.4.2",
+    "key-forge": "1.0.0-beta-01",
+    "redis": "~2.8.0"
+  },
+  "devDependencies": {
+    "coffeescript": "1.10.0",
+    "mocha": "~5.1.1"
+  }
+}
