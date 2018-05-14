@@ -7,7 +7,7 @@ Disker is an implementation of dispatcher worker pattenr in Node.js. Disker is b
 
 Either we can use a singleton or create a new instance. Its optimal to use single Disker instance per process. 
 
-Create a dispatcher
+Create a dispatcher:
 ```coffeescript
   options = {host: "127.0.0.1", port: 6379, poolSize: 100}
   dispatcher = Disker.getSingleton(options)
@@ -15,13 +15,14 @@ Create a dispatcher
   # dispatcher = new Disker(options)
 ```
 
-Similarly, create a worker. Usually, you would run worker code on one or more remote machines.
+Similarly, create a worker:
 ```coffeescript
   options = {host: "127.0.0.1", port: 6379, poolSize: 100}
   worker = Disker.getSingleton(options)
   # or if we need to create a new instance
   # worker = new Disker(options)
 ```
+> Note: You can run worker code on one or more remote machines.
 
 ### Send messages
 
