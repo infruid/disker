@@ -190,8 +190,10 @@ module.exports = class Disker
             @_clearMessageTimeout {client, sender, receiver, id}
           .then =>
             if message?
-              handler = @_timeoutHandlers[sender]
+              {handler, oneTime} = @_timeoutHandlers[sender]
               if handler?
+                # if this handler is registered for receiving only one timeout, remove the handler
+                delete @_timeoutHandlers[sender] if oneTime? and oneTime
                 handler {content: message.content, id: message.id, requestId: message.requestId}
             return
 
@@ -237,12 +239,12 @@ module.exports = class Disker
     .finally =>
       @_clientPool.release(client) if client?
 
-  registerMessageHandler: ({receiver, handler}) ->
+  registerMessageHandler: ({receiver, oneTime, handler}) ->
     return Promise.reject("Missing required argument 'receiver'") unless receiver?
     return Promise.reject("Missing required argument 'handler'") unless handler?
     return Promise.reject("Handler was already registered for '#{receiver}'") if @_messageHandlers[receiver]?
 
-    @_messageHandlers[receiver] = handler
+    @_messageHandlers[receiver] = {receiver, oneTime, handler}
     
     do listen = =>
       return if @_ending
@@ -253,8 +255,11 @@ module.exports = class Disker
         client.brpop "#{receiver}.queue", @_receiverBlockTimeout, (err, data) =>
           # do not notify if the handler was unregistered already
           return if @_ending or !@_messageHandlers[receiver]?
-          #we still do not have a message, continue listening
+          # we still do not have a message, continue listening
           return setImmediate(listen) unless data?
+
+          # if this handler is registered for only one time, remove it
+          delete @_messageHandlers[receiver] if oneTime? and oneTime
 
           [key, json] = data
           messageId = JSON.parse(json)
@@ -300,10 +305,10 @@ module.exports = class Disker
     return Promise.reject("Missing required argument 'receiver'") unless receiver?
     delete @_messageHandlers[receiver]
 
-  registerTimeoutHandler: ({sender, handler}) ->
+  registerTimeoutHandler: ({sender, oneTime, handler}) ->
     return Promise.reject("Missing required argument 'sender'") unless sender?
     return Promise.reject("Missing required argument 'handler'") unless handler?
-    @_timeoutHandlers[sender] = handler
+    @_timeoutHandlers[sender] = {sender, oneTime, handler}
 
   unregisterTimeoutHandler: ({sender}) ->
     return Promise.reject("Missing required argument 'sender'") unless sender?

@@ -16,7 +16,7 @@ describe "Disker Tests", ->
 
     it "receive message", ->
       new Promise (resolve, reject) ->
-        worker.registerMessageHandler receiver: "worker-1", handler: (message) ->
+        worker.registerMessageHandler receiver: "worker-1", oneTime: true, handler: (message) ->
           assert.equal message.content, "message"
           worker.reply {sender: "worker-1", receiver: "dispatcher-1", message, response: "reply"}
           .then -> resolve()
@@ -24,7 +24,7 @@ describe "Disker Tests", ->
 
     it "receive reply", ->
       new Promise (resolve, reject) ->
-        dispatcher.registerMessageHandler receiver: "dispatcher-1", handler: (reply) ->
+        dispatcher.registerMessageHandler receiver: "dispatcher-1", oneTime: true, handler: (reply) ->
           assert.equal reply.content, "reply"
           resolve()
 
@@ -36,13 +36,13 @@ describe "Disker Tests", ->
 
     it "receive message", ->
       new Promise (resolve, reject) ->
-        worker.registerMessageHandler receiver: "worker-2", handler: (message) ->
+        worker.registerMessageHandler receiver: "worker-2", oneTime: true, handler: (message) ->
           assert.equal message.content, "message"
           resolve()
 
     it "wait for timeout", ->
       new Promise (resolve, reject) ->
-        dispatcher.registerTimeoutHandler sender: "dispatcher-2", handler: (message) ->
+        dispatcher.registerTimeoutHandler sender: "dispatcher-2", oneTime: true, handler: (message) ->
           assert.equal message.content, "message"
           resolve()
 
@@ -54,9 +54,9 @@ describe "Disker Tests", ->
 
     it "receive message", ->
       new Promise (resolve, reject) ->
-        worker.registerMessageHandler receiver: "worker-3", handler: (receivedMessage) ->
+        worker.registerMessageHandler receiver: "worker-3", oneTime: true, handler: (receivedMessage) ->
           assert.equal receivedMessage.content, "message"
-          dispatcher.registerTimeoutHandler sender: "dispatcher-3", handler: (timedoutMessage) ->
+          dispatcher.registerTimeoutHandler sender: "dispatcher-3", oneTime: true, handler: (timedoutMessage) ->
             assert.equal timedoutMessage.content, "message"
             worker.reply {sender: "worker-3", receiver: "dispatcher-3", message: receivedMessage, response: "reply"}
             .then -> resolve()
@@ -69,9 +69,9 @@ describe "Disker Tests", ->
 
     it "receive message", ->
       new Promise (resolve, reject) ->
-        dispatcher.registerTimeoutHandler sender: "dispatcher-4", handler: (message) ->
+        dispatcher.registerTimeoutHandler sender: "dispatcher-4", oneTime: true, handler: (message) ->
           assert.equal(message.content, "message")
-          worker.registerMessageHandler receiver: "worker-4", handler: (message) ->
+          worker.registerMessageHandler receiver: "worker-4", oneTime: true, handler: (message) ->
             reject("worker received a timed out message")
           setTimeout resolve, 1000
 
@@ -86,9 +86,9 @@ describe "Disker Tests", ->
       promises = []
       [1..messageCount].map (i) ->
         promise = new Promise (resolve, reject) ->
-          dispatcher.registerTimeoutHandler sender: "dispatcher-5-#{i}", handler: (message) ->
+          dispatcher.registerTimeoutHandler sender: "dispatcher-5-#{i}", oneTime: true, handler: (message) ->
             resolve()
-          dispatcher.registerMessageHandler receiver: "dispatcher-5-#{i}", handler: (message) ->
+          dispatcher.registerMessageHandler receiver: "dispatcher-5-#{i}", oneTime: true, handler: (message) ->
             resolve()
           dispatcher.send {sender: "dispatcher-5-#{i}", receiver: "worker-5", content: i, timeout: 10000}
         promises.push(promise)
