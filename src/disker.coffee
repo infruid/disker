@@ -5,15 +5,14 @@ GenericPool = require "generic-pool"
 module.exports = class Disker
 
   constructor: (options) ->
-    {host, port, poolSize} = options
-
-    host ?= "127.0.0.1"
-    port ?= 6379
-    poolSize ?= 10
+    options.redis ?= {}
+    options.redis.host ?= "127.0.0.1"
+    options.redis.port ?= 6379
+    options.maxConnectionPoolSize ?= 10
     @_id = randomKey(5)
     @_ending = false
     @_isSingleton = if options.isSingleton? then options.isSingleton? else false
-    @_blockTimeout = if options.blockTimeout? then options.blockTimeout else 1
+    @_receiverBlockTimeout = if options.receiverBlockTimeout? then options.receiverBlockTimeout else 1
     @_timeoutMonitorFrequency = 1000 * (if options.timeoutMonitorFrequency? then options.timeoutMonitorFrequency else 1)
     @_timeoutMonitor = null
     @_messageHandlers = {}
@@ -22,11 +21,11 @@ module.exports = class Disker
     poolFactory = 
       create: =>
         new Promise (resolve, reject) ->
-          client = redis.createClient port, host, options.redis
+          client = redis.createClient(options)
           client.on "error", (error) -> reject(error)
           client.on "connect", -> resolve(client)
       destroy: (client) => client.quit()
-    @_clientPool = GenericPool.createPool(poolFactory, {min: 0, max: poolSize})
+    @_clientPool = GenericPool.createPool(poolFactory, {min: 0, max: options.maxConnectionPoolSize})
 
     @_monitorTimeouts()
 
@@ -249,7 +248,7 @@ module.exports = class Disker
       @_clientPool.acquire()
       .then (_client) =>
         client = _client
-        client.brpop "#{receiver}.queue", @_blockTimeout, (err, data) =>
+        client.brpop "#{receiver}.queue", @_receiverBlockTimeout, (err, data) =>
           # do not notify if the handler was unregistered already
           return if @_ending or !@_messageHandlers[receiver]?
           #we still do not have a message, continue listening
