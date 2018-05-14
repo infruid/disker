@@ -22,7 +22,9 @@ module.exports = class Disker
       create: =>
         new Promise (resolve, reject) ->
           client = redis.createClient(options)
-          client.on "error", (error) -> reject(error)
+          client.on "error", (error) -> 
+            console.log "Error connecting to Redis:", error
+            reject(error)
           client.on "connect", -> resolve(client)
       destroy: (client) => client.quit()
     @_clientPool = GenericPool.createPool(poolFactory, {min: 0, max: options.maxConnectionPoolSize})

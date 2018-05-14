@@ -2,7 +2,7 @@ Disker = require "../../src/disker"
 {randomKey} = require "key-forge"
 assert = require "assert"
 
-options = {redis: {host: "127.0.0.1", port: 6379}, maxConnectionPoolSize: 5000}
+options = {redis: {host: "127.0.0.1", port: 6379}, maxConnectionPoolSize: 2000}
 
 describe "Disker Tests", ->
 
@@ -79,11 +79,12 @@ describe "Disker Tests", ->
   describe "send and receive many messages in quick succession", ->
     messageCount = 1000
     it "send and receive #{messageCount} messages", ->
-      promises = []
+
       worker.registerMessageHandler receiver: "worker-5", handler: (message) ->
         worker.reply {sender: "worker-5", receiver: "dispatcher-5-#{message.content}", message, response: "reply-#{message.content}"}
 
-      for i in [1..messageCount]
+      promises = []
+      [1..messageCount].map (i) ->
         promise = new Promise (resolve, reject) ->
           dispatcher.registerTimeoutHandler sender: "dispatcher-5-#{i}", handler: (message) ->
             resolve()
@@ -91,7 +92,6 @@ describe "Disker Tests", ->
             resolve()
           dispatcher.send {sender: "dispatcher-5-#{i}", receiver: "worker-5", content: i, timeout: 10000}
         promises.push(promise)
-
       Promise.all(promises)
 
   describe "end dispatcher and worker", ->
