@@ -1,5 +1,5 @@
 # Disker
-Disker is an implementation of dispatcher worker pattenr in Node.js. Disker is built for http request response lifecylye. Disker is inspired from [mutual](https://github.com/pandastrike/mutual)
+Disker is an implementation of dispatcher worker pattern in Node.js. Disker is built for http request response lifecylye. Disker is inspired from [mutual](https://github.com/pandastrike/mutual).
 
 # Usage
 
