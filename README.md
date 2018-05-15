@@ -1,5 +1,5 @@
 # Disker
-Disker is an implementation of dispatcher-worker pattern for distributed processing of tasks. For example, Disker can be used for distributed processing of HTTP requests. Disker is inspired by [mutual](https://github.com/pandastrike/mutual).
+Disker is an implementation of dispatcher-worker pattern for distributed processing of tasks using Redis. For example, Disker can be used for distributed processing of HTTP requests. Disker is inspired by [mutual](https://github.com/pandastrike/mutual).
 
 # Usage
 
