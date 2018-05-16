@@ -146,7 +146,6 @@ module.exports = class Disker
       )
 
   _monitorTimeouts: =>
-    console.log "monitoring"
     return if @_ending
     client = null
     randomId = randomKey(5)
