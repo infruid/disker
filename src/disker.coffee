@@ -215,11 +215,15 @@ module.exports = class Disker
     .finally =>
       @_clientPool.release(client) if client?
 
-  reply: ({sender, receiver, message, response, timeout}) ->
-    return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
-    return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
+  reply: ({message, response, timeout}) ->
     return Promise.reject(new Error("Missing required argument 'message'")) unless message?
+    return Promise.reject(new Error("Missing required field 'message.sender'")) unless message.sender?
+    return Promise.reject(new Error("Missing required field 'message.receiver'")) unless message.receiver?
     return Promise.reject(new Error("Missing required field 'message.requestId'")) unless message.requestId?
+
+    # since this is a reply sender will be original receiver and receiver will be original sender
+    sender = message.receiver
+    receiver = message.sender
 
     client = null
     @_clientPool.acquire()

@@ -18,7 +18,7 @@ describe "Disker Tests", ->
       new Promise (resolve, reject) ->
         worker.registerMessageHandler receiver: "worker-1", oneTime: true, handler: (message) ->
           assert.equal message.content, "hello worker-1"
-          worker.reply {sender: "worker-1", receiver: "dispatcher-1", message, response: "reply"}
+          worker.reply {message, response: "reply"}
           .then -> resolve()
           .catch (err) -> reject(err)
 
@@ -64,7 +64,7 @@ describe "Disker Tests", ->
           assert.equal receivedMessage.content, "hello worker-4"
           dispatcher.registerTimeoutHandler sender: "dispatcher-4", oneTime: true, handler: (timedoutMessage) ->
             assert.equal timedoutMessage.content, "hello worker-4"
-            worker.reply {sender: "worker-3", receiver: "dispatcher-4", message: receivedMessage, response: "reply"}
+            worker.reply {message: receivedMessage, response: "reply"}
             .then -> resolve()
 
 
@@ -73,7 +73,7 @@ describe "Disker Tests", ->
     it "can send and receive #{messageCount} messages", ->
 
       worker.registerMessageHandler receiver: "worker-5", handler: (message) ->
-        worker.reply {sender: "worker-5", receiver: "dispatcher-5-#{message.content}", message, response: "reply-#{message.content}"}
+        worker.reply {message, response: "reply-#{message.content}"}
 
       promises = [1..messageCount].map (i) ->
         promise = new Promise (resolve, reject) ->
