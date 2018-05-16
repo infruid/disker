@@ -13,48 +13,45 @@ module.exports = class ControlChannel
     
     @subscribed = false
     options = Object.assign(defaultOptions, options)
-    @client = redis.createClient(options.redis)
+    @pubClient = redis.createClient(options.redis)
+    @subClient = redis.createClient(options.redis)
 
-  publish: (message) ->
+  publish: ({receiver, content}) ->
+    return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
     new Promise (resolve, reject) =>
-      if @subscribed
-        err = new Error()
-        err.code = 405
-        err.message = "You can't publish on the same channel you have subscribed to."
-        return reject(err)
-
-      @client.publish @name, JSON.stringify(message), (err, data) =>
+      @pubClient.publish receiver, JSON.stringify({@name, receiver, content}), (err, data) =>
         return reject(err) if err?
         resolve()
 
   subscribe: (handler) ->
     new Promise (resolve, reject) =>
-      return reject("You have already subscribed to this channel") if @subscribed
-      return reject("Missing required argument 'handler'") unless handler?
+      return reject(new Error("You have already subscribed to this channel")) if @subscribed
+      return reject(new Error("Missing required argument 'handler'")) unless handler?
 
-      @client.on "message", (channel, data) ->
+      @subClient.on "message", (@name, data) ->
         handler JSON.parse(data)
-      @client.on "subscribe", (channel, count) =>
+      @subClient.on "subscribe", (@name, count) =>
         @subscribed = true
         resolve()
-      @client.subscribe @name, (err, data) ->
+      @subClient.subscribe @name, (err, data) ->
         reject(err) if err?
 
   unsubscribe: ->
     new Promise (resolve, reject) =>
       return resolve() unless @subscribed
-      @client.on "unsubscribe", (channel, count) =>
+      @subClient.on "unsubscribe", (channel, count) =>
         @subscribed = false
         resolve()
-      @client.unsubscribe @name, (err) =>
+      @subClient.unsubscribe @name, (err) =>
         reject(err) if err?
   
   end: ->
     new Promise (resolve, reject) =>
       @unsubscribe()
       .then =>
-        @client.quit()
-        @client = null
+        @subClient.quit()
+        @pubClient.quit()
+        @pubClient = @subClient = null
         resolve()
       .catch (err) ->
         reject(err)

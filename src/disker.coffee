@@ -199,8 +199,8 @@ module.exports = class Disker
             return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
-    return Promise.reject("Missing required argument 'sender'") unless sender?
-    return Promise.reject("Missing required argument 'receiver'") unless receiver?
+    return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
+    return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
 
     message = @_package({sender, receiver, content, fireAndForget, timeout})
 
@@ -217,10 +217,10 @@ module.exports = class Disker
       @_clientPool.release(client) if client?
 
   reply: ({sender, receiver, message, response, timeout}) ->
-    return Promise.reject("Missing required argument 'sender'") unless sender?
-    return Promise.reject("Missing required argument 'receiver'") unless receiver?
-    return Promise.reject("Missing required argument 'message'") unless message?
-    return Promise.reject("Missing required field 'message.requestId'") unless message.requestId?
+    return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
+    return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
+    return Promise.reject(new Error("Missing required argument 'message'")) unless message?
+    return Promise.reject(new Error("Missing required field 'message.requestId'")) unless message.requestId?
 
     client = null
     @_clientPool.acquire()
@@ -241,9 +241,9 @@ module.exports = class Disker
       @_clientPool.release(client) if client?
 
   registerMessageHandler: ({receiver, oneTime, handler}) ->
-    return Promise.reject("Missing required argument 'receiver'") unless receiver?
-    return Promise.reject("Missing required argument 'handler'") unless handler?
-    return Promise.reject("Handler was already registered for '#{receiver}'") if @_messageHandlers[receiver]?
+    return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
+    return Promise.reject(new Error("Missing required argument 'handler'")) unless handler?
+    return Promise.reject(new Error("Handler was already registered for '#{receiver}'")) if @_messageHandlers[receiver]?
 
     @_messageHandlers[receiver] = {receiver, oneTime, handler}
     
@@ -322,18 +322,18 @@ module.exports = class Disker
     Promise.resolve()
 
   unregisterMessageHandler: ({receiver}) ->
-    return Promise.reject("Missing required argument 'receiver'") unless receiver?
+    return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
     delete @_messageHandlers[receiver]
     Promise.resolve()
 
   registerTimeoutHandler: ({sender, oneTime, handler}) ->
-    return Promise.reject("Missing required argument 'sender'") unless sender?
-    return Promise.reject("Missing required argument 'handler'") unless handler?
+    return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
+    return Promise.reject(new Error("Missing required argument 'handler'")) unless handler?
     @_timeoutHandlers[sender] = {sender, oneTime, handler}
     Promise.resolve()
 
   unregisterTimeoutHandler: ({sender}) ->
-    return Promise.reject("Missing required argument 'sender'") unless sender?
+    return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
     delete @_timeoutHandlers[sender]
     Promise.resolve()
 
