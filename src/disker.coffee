@@ -265,7 +265,7 @@ module.exports = class Disker
           # do not continue to listen if end was called
           return _finally(false) if @_ending
           # do not notify if the handler was unregistered already
-          return _finally(true) unless @_messageHandlers[receiver]?
+          return _finally(false) unless @_messageHandlers[receiver]?
           # we still do not have a message, continue listening
           return _finally(true) unless data?
 
@@ -314,10 +314,11 @@ module.exports = class Disker
               _message.receiver = if message.requestId? then message.sender else message.receiver
               _message.requestId = if message.requestId? then message.requestId else message.id
               _message.responseId = message.id if message.requestId?
-              handler _message
+              setImmediate ->
+                handler(_message)
             return
-          .finally ->
-            _finally(true)
+          .finally =>
+            _finally(@_messageHandlers[receiver]?)
       .catch (err) =>
         console.log "Disker: Unable to open connection to pop messages from Redis queue. #{err}"
     
