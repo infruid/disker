@@ -30,7 +30,7 @@ module.exports = class Disker
       create: =>
         new Promise (resolve, reject) ->
           client = redis.createClient(options.redis)
-          client.on "error", (error) -> 
+          client.on "error", (err) -> 
             console.log "Disker: Error connecting to Redis #{err}"
             reject(error)
           client.on "connect", -> resolve(client)
