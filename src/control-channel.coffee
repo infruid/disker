@@ -8,13 +8,35 @@ defaultOptions =
 
 module.exports = class ControlChannel
 
-  constructor: ({@name, options}) ->
+  @create: ({name, options}) ->
+    new Promise (resolve, reject) ->
+      controlChannel = new ControlChannel({name, options, callback: ->
+        return reject(err) if err?
+        resolve(controlChannel)
+      })
+
+  constructor: ({@name, options, callback}) ->
     @_id = randomKey(5) # this is useful for debugging
     
     @subscribed = false
+    @messageHandlers = {}
     options = Object.assign(defaultOptions, options)
+
     @pubClient = redis.createClient(options.redis)
-    @subClient = redis.createClient(options.redis)
+    @pubClient.on "error", (err) -> 
+      console.log "Disker: Error connecting to Redis #{err}"
+      callback(err) if callback?
+    @pubClient.on "connect", =>
+      @subClient = redis.createClient(options.redis)
+      @subClient.on "error", (err) -> 
+        console.log "Disker: Error connecting to Redis #{err}"
+        callback(err) if callback?
+      @subClient.on "connect", =>
+        @subClient.on "subscribe", (@name, count) =>
+          @subscribed = true
+          callback() if callback?
+        @subClient.subscribe @name, (err, data) ->
+          callback(err) if err? and callback?
 
   publish: ({receiver, content}) ->
     return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
@@ -23,35 +45,26 @@ module.exports = class ControlChannel
         return reject(err) if err?
         resolve()
 
-  subscribe: (handler) ->
-    new Promise (resolve, reject) =>
-      return reject(new Error("You have already subscribed to this channel")) if @subscribed
-      return reject(new Error("Missing required argument 'handler'")) unless handler?
+  registerMessageHandler: (handler) ->
+    return reject(new Error("Missing required argument 'handler'")) unless handler?
 
-      @subClient.on "message", (@name, data) ->
+    @messageHandlers[handler] = 1
+    @subClient.on "message", (name, data) =>
+      if @messageHandlers[handler]?
         handler JSON.parse(data)
-      @subClient.on "subscribe", (@name, count) =>
-        @subscribed = true
-        resolve()
-      @subClient.subscribe @name, (err, data) ->
-        reject(err) if err?
+    Promise.resolve()
 
-  unsubscribe: ->
-    new Promise (resolve, reject) =>
-      return resolve() unless @subscribed
-      @subClient.on "unsubscribe", (channel, count) =>
-        @subscribed = false
-        resolve()
-      @subClient.unsubscribe @name, (err) =>
-        reject(err) if err?
+  unregisterMessageHandler: (handler) ->
+    delete @messageHandlers[handler]
+    Promise.resolve()
   
   end: ->
     new Promise (resolve, reject) =>
-      @unsubscribe()
-      .then =>
+      @subClient.on "unsubscribe", (channel, count) =>
+        @subscribed = false
         @subClient.quit()
         @pubClient.quit()
         @pubClient = @subClient = null
         resolve()
-      .catch (err) ->
-        reject(err)
+      @subClient.unsubscribe @name, (err) =>
+        reject(err) if err?
