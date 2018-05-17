@@ -194,7 +194,8 @@ module.exports = class Disker
               if handler?
                 # if this handler is registered for receiving only one timeout, remove the handler
                 delete @_timeoutHandlers[sender] if oneTime? and oneTime
-                handler {content: message.content, id: message.id, requestId: message.requestId}
+                setImmediate ->
+                  handler {content: message.content, id: message.id, requestId: message.requestId}
             return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
