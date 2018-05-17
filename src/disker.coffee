@@ -184,19 +184,19 @@ module.exports = class Disker
       .then (timeout) =>
         # if reply was sent in the meantime, timeout would have been cleared, we shouldn't fire timeout if it was replied
         return unless timeout?
-        if message?
-          @_deleteMessage {client, receiver, id}
-          .then =>
-            @_clearMessageTimeout {client, sender, receiver, id}
-          .then =>
-            if message?
-              {handler, oneTime} = @_timeoutHandlers[sender]
-              if handler?
-                # if this handler is registered for receiving only one timeout, remove the handler
-                delete @_timeoutHandlers[sender] if oneTime? and oneTime
-                setImmediate ->
-                  handler {content: message.content, id: message.id, requestId: message.requestId}
-            return
+
+        @_deleteMessage {client, receiver, id}
+        .then =>
+          @_clearMessageTimeout {client, sender, receiver, id}
+        .then =>
+          if message?
+            {handler, oneTime} = @_timeoutHandlers[sender]
+            if handler?
+              # if this handler is registered for receiving only one timeout, remove the handler
+              delete @_timeoutHandlers[sender] if oneTime? and oneTime
+              setImmediate ->
+                handler {content: message.content, id: message.id, requestId: message.requestId}
+          return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
     return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
