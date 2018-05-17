@@ -33,7 +33,7 @@ module.exports = class Disker
           client.on "error", (err) -> 
             console.log "Disker: Error connecting to Redis #{err}"
             reject(error)
-          client.on "connect", -> resolve(client)
+          client.on "ready", -> resolve(client)
       destroy: (client) => client.quit()
     @_clientPool = GenericPool.createPool(poolFactory, {min: 0, max: options.maxConnectionPoolSize})
 
