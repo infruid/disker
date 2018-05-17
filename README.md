@@ -36,6 +36,9 @@ Similarly, create a worker:
   });
 ```
 
+> If you do not wish to receive a reply, you can can use a boolean flag "fireAndForget" when sending the message.
+> like this `dispatcher.send({ "sender": "my-dispatcher", "receiver": "my-worker", "content": "hello worker", "fireAndForget": true })`
+
 ### Receive messages
 
 ```javascript
