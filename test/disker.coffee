@@ -69,7 +69,7 @@ describe "Disker Tests", ->
 
 
   describe "can send and receive many messages in quick succession", ->
-    messageCount = 1
+    messageCount = 1000
     it "can send and receive #{messageCount} messages", ->
 
       worker.registerMessageHandler receiver: "worker-5", handler: (message) ->
