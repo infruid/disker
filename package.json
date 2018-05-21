@@ -1,6 +1,6 @@
 {
   "name": "disker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dispatcher-worker implementation using Redis. This is inspired by Pandastrike's mutual implementation of DurableChannel",
   "main": "dist/index.js",
   "scripts": {

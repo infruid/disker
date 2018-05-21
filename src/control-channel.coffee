@@ -41,7 +41,7 @@ module.exports = class ControlChannel
   publish: ({receiver, content}) ->
     return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
     new Promise (resolve, reject) =>
-      @pubClient.publish receiver, JSON.stringify({@name, receiver, content}), (err, data) =>
+      @pubClient.publish receiver, JSON.stringify({sender: @name, receiver, content}), (err, data) =>
         return reject(err) if err?
         resolve()
 

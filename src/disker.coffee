@@ -167,17 +167,21 @@ module.exports = class Disker
           return resolve() if replies?.length == 0
           promises = []
           for reply, index in replies
+            sender = keys[index]
+            {handler, oneTime} = @_timeoutHandlers[sender]
+            # if this handler is registered for receiving only one timeout, remove the handler
+            delete @_timeoutHandlers[sender] if oneTime? and oneTime
             for expiredMessage in reply
               expiredMessageTokens = expiredMessage.split("::")
               promises.push(
-                @_expireMessage {client, sender: keys[index], receiver: expiredMessageTokens[0], id: expiredMessageTokens[1]}
+                @_expireMessage {client, sender: keys[index], receiver: expiredMessageTokens[0], id: expiredMessageTokens[1], handler}
               )
           resolve(Promise.all(promises))
     .finally =>
       @_timeoutMonitor = setTimeout(@_monitorTimeouts, @_timeoutMonitorFrequency)
       @_clientPool.release(client) if client?
 
-  _expireMessage: ({client, sender, receiver, id}) ->
+  _expireMessage: ({client, sender, receiver, id, handler}) ->
     @_getMessage({client, receiver, id})
     .then (message) =>
       @_getMessageTimeout({client, sender, receiver, id})
@@ -189,13 +193,9 @@ module.exports = class Disker
         .then =>
           @_clearMessageTimeout {client, sender, receiver, id}
         .then =>
-          if message?
-            {handler, oneTime} = @_timeoutHandlers[sender]
-            if handler?
-              # if this handler is registered for receiving only one timeout, remove the handler
-              delete @_timeoutHandlers[sender] if oneTime? and oneTime
-              setImmediate ->
-                handler {content: message.content, id: message.id, requestId: message.requestId}
+          if message? and handler?
+            setImmediate ->
+              handler {content: message.content, id: message.id, requestId: message.requestId}
           return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
