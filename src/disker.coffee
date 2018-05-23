@@ -270,9 +270,6 @@ module.exports = class Disker
           # we still do not have a message, continue listening
           return _finally(true) unless data?
 
-          # if this handler is registered for only one time, remove handler
-          delete @_messageHandlers[receiver] if oneTime? and oneTime
-
           [key, json] = data
           messageId = JSON.parse(json)
           @_getMessage({client, receiver, id: messageId})
@@ -308,7 +305,7 @@ module.exports = class Disker
                 @_deleteMessage {client, receiver, id: message.id}
                 .then ->
                   return null
-          .then (message) ->
+          .then (message) =>
             if message?
               _message = content: message.content
               _message.sender = if message.requestId? then message.receiver else message.sender
@@ -317,6 +314,8 @@ module.exports = class Disker
               _message.responseId = message.id if message.requestId?
               setImmediate ->
                 handler(_message)
+              # if this handler is registered for only one time, remove handler if we have a message
+              delete @_messageHandlers[receiver] if oneTime? and oneTime
             return
           .finally =>
             _finally(@_messageHandlers[receiver]?)
