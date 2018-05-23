@@ -168,20 +168,17 @@ module.exports = class Disker
           promises = []
           for reply, index in replies
             sender = keys[index]
-            {handler, oneTime} = @_timeoutHandlers[sender]
-            # if this handler is registered for receiving only one timeout, remove the handler if we have a timeout
-            delete @_timeoutHandlers[sender] if oneTime? and oneTime and reply?.length > 0
             for expiredMessage in reply
               expiredMessageTokens = expiredMessage.split("::")
               promises.push(
-                @_expireMessage {client, sender: keys[index], receiver: expiredMessageTokens[0], id: expiredMessageTokens[1], handler}
+                @_expireMessage {client, sender: keys[index], receiver: expiredMessageTokens[0], id: expiredMessageTokens[1]}
               )
           resolve(Promise.all(promises))
     .finally =>
       @_clientPool.release(client) if client?
       @_timeoutMonitor = setTimeout(@_monitorTimeouts, @_timeoutMonitorFrequency)
 
-  _expireMessage: ({client, sender, receiver, id, handler}) ->
+  _expireMessage: ({client, sender, receiver, id}) ->
     @_getMessage({client, receiver, id})
     .then (message) =>
       @_getMessageTimeout({client, sender, receiver, id})
@@ -193,9 +190,12 @@ module.exports = class Disker
         .then =>
           @_clearMessageTimeout {client, sender, receiver, id}
         .then =>
+          handler = @_timeoutHandlers[sender]
           if message? and handler?
             setImmediate ->
               handler {content: message.content, id: message.id, requestId: message.requestId}
+          # remove the handler
+          delete @_timeoutHandlers[sender]
           return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
@@ -330,10 +330,10 @@ module.exports = class Disker
     delete @_messageHandlers[receiver]
     Promise.resolve()
 
-  registerTimeoutHandler: ({sender, oneTime, handler}) ->
+  registerTimeoutHandler: ({sender, handler}) ->
     return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
     return Promise.reject(new Error("Missing required argument 'handler'")) unless handler?
-    @_timeoutHandlers[sender] = {sender, oneTime, handler}
+    @_timeoutHandlers[sender] = handler
     Promise.resolve()
 
   unregisterTimeoutHandler: ({sender}) ->
