@@ -169,8 +169,8 @@ module.exports = class Disker
           for reply, index in replies
             sender = keys[index]
             {handler, oneTime} = @_timeoutHandlers[sender]
-            # if this handler is registered for receiving only one timeout, remove the handler
-            delete @_timeoutHandlers[sender] if oneTime? and oneTime
+            # if this handler is registered for receiving only one timeout, remove the handler if we have a timeout
+            delete @_timeoutHandlers[sender] if oneTime? and oneTime and reply?.length > 0
             for expiredMessage in reply
               expiredMessageTokens = expiredMessage.split("::")
               promises.push(
@@ -178,8 +178,8 @@ module.exports = class Disker
               )
           resolve(Promise.all(promises))
     .finally =>
-      @_timeoutMonitor = setTimeout(@_monitorTimeouts, @_timeoutMonitorFrequency)
       @_clientPool.release(client) if client?
+      @_timeoutMonitor = setTimeout(@_monitorTimeouts, @_timeoutMonitorFrequency)
 
   _expireMessage: ({client, sender, receiver, id, handler}) ->
     @_getMessage({client, receiver, id})
