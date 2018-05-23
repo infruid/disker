@@ -115,6 +115,8 @@ module.exports = class Disker
       client.zrem(
         ["#{sender}.pending", "#{receiver}::#{id}"]
         (err, data) =>
+          # remove the handler
+          delete @_timeoutHandlers[sender]
           if err?
             reject(err)
           else
@@ -179,28 +181,27 @@ module.exports = class Disker
       @_timeoutMonitor = setTimeout(@_monitorTimeouts, @_timeoutMonitorFrequency)
 
   _expireMessage: ({client, sender, receiver, id}) ->
+    fireTimeout = false
+    handler = @_timeoutHandlers[sender]
     @_getMessage({client, receiver, id})
     .then (message) =>
       @_getMessageTimeout({client, sender, receiver, id})
       .then (timeout) =>
         # if reply was sent in the meantime, timeout would have been cleared, we shouldn't fire timeout if it was replied
-        return unless timeout?
-
+        fireTimeout = timeout?
         @_deleteMessage {client, receiver, id}
-        .then =>
+      .then =>
           @_clearMessageTimeout {client, sender, receiver, id}
-        .then =>
-          handler = @_timeoutHandlers[sender]
-          if message? and handler?
-            setImmediate ->
-              handler {content: message.content, id: message.id, requestId: message.requestId}
-          # remove the handler
-          delete @_timeoutHandlers[sender]
-          return
+      .then =>
+        if fireTimeout and message? and handler?
+          setImmediate ->
+            handler {content: message.content, id: message.id, requestId: message.requestId}
+        return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
     return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
     return Promise.reject(new Error("Missing required argument 'receiver'")) unless receiver?
+    return Promise.reject(new Error("You can use either of 'fireAndForget' and 'timeout', but not both")) if fireAndForget? and fireAndForget and timeout?
 
     message = @_package({sender, receiver, content, fireAndForget, timeout})
 
@@ -292,10 +293,11 @@ module.exports = class Disker
             @_getMessage {client, receiver: message.sender, id: message.requestId}
             .then (request) =>
               if request?
-                # now that we got the reply, we can delete the original request
-                return @_deleteMessage(
-                  {client, receiver: message.sender, id: message.requestId}
-                ).then =>
+                # now that we got the reply, we can delete the original request and corresponding timeout
+                return @_deleteMessage {client, receiver: message.sender, id: message.requestId}
+                .then =>
+                  return @_clearMessageTimeout {client, sender: message.receiver, receiver: message.sender, id: message.requestId}
+                .then =>
                   # now that we got the reply, we are done with the lifecycle of the message, delete the reply too
                   return @_deleteMessage {client, receiver, id: message.id}
                 .then ->
@@ -334,11 +336,6 @@ module.exports = class Disker
     return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
     return Promise.reject(new Error("Missing required argument 'handler'")) unless handler?
     @_timeoutHandlers[sender] = handler
-    Promise.resolve()
-
-  unregisterTimeoutHandler: ({sender}) ->
-    return Promise.reject(new Error("Missing required argument 'sender'")) unless sender?
-    delete @_timeoutHandlers[sender]
     Promise.resolve()
 
   end: -> 
