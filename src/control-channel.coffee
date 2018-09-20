@@ -10,7 +10,7 @@ module.exports = class ControlChannel
 
   @create: ({name, options}) ->
     new Promise (resolve, reject) ->
-      controlChannel = new ControlChannel({name, options, callback: ->
+      controlChannel = new ControlChannel({name, options, callback: (err) ->
         return reject(err) if err?
         resolve(controlChannel)
       })
