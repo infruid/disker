@@ -10,7 +10,7 @@ module.exports = class ControlChannel
 
   @create: ({name, options}) ->
     new Promise (resolve, reject) ->
-      controlChannel = new ControlChannel({name, options, callback: ->
+      controlChannel = new ControlChannel({name, options, callback: (err) ->
         return reject(err) if err?
         resolve(controlChannel)
       })
@@ -26,12 +26,12 @@ module.exports = class ControlChannel
     @pubClient.on "error", (err) -> 
       console.log "Disker: Error connecting to Redis #{err}"
       callback(err) if callback?
-    @pubClient.on "connect", =>
+    @pubClient.on "ready", =>
       @subClient = redis.createClient(options.redis)
       @subClient.on "error", (err) -> 
         console.log "Disker: Error connecting to Redis #{err}"
         callback(err) if callback?
-      @subClient.on "connect", =>
+      @subClient.on "ready", =>
         @subClient.on "subscribe", (@name, count) =>
           @subscribed = true
           callback() if callback?
