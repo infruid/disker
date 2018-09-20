@@ -26,12 +26,12 @@ module.exports = class ControlChannel
     @pubClient.on "error", (err) -> 
       console.log "Disker: Error connecting to Redis #{err}"
       callback(err) if callback?
-    @pubClient.on "connect", =>
+    @pubClient.on "ready", =>
       @subClient = redis.createClient(options.redis)
       @subClient.on "error", (err) -> 
         console.log "Disker: Error connecting to Redis #{err}"
         callback(err) if callback?
-      @subClient.on "connect", =>
+      @subClient.on "ready", =>
         @subClient.on "subscribe", (@name, count) =>
           @subscribed = true
           callback() if callback?
