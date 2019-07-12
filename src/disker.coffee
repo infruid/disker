@@ -185,17 +185,16 @@ module.exports = class Disker
     handler = @_timeoutHandlers[sender]
     @_getMessage({client, receiver, id})
     .then (message) =>
-      @_getMessageTimeout({client, sender, receiver, id})
-      .then (timeout) =>
+      @_clearMessageTimeout {client, sender, receiver, id}
+      .then (timeoutsCleared) =>
         # if reply was sent in the meantime, timeout would have been cleared, we shouldn't fire timeout if it was replied
-        fireTimeout = timeout?
-        @_deleteMessage {client, receiver, id}
-      .then =>
-          @_clearMessageTimeout {client, sender, receiver, id}
+        fireTimeout = timeoutsCleared > 0
+        if fireTimeout
+          @_deleteMessage {client, receiver, id}
       .then =>
         if fireTimeout and message? and handler?
           setImmediate ->
-            handler {content: message.content, id: message.id, requestId: message.requestId}
+            handler message
         return
 
   send: ({sender, receiver, content, fireAndForget, timeout}) ->
@@ -223,25 +222,21 @@ module.exports = class Disker
     return Promise.reject(new Error("Missing required field 'message.receiver'")) unless message.receiver?
     return Promise.reject(new Error("Missing required field 'message.requestId'")) unless message.requestId?
 
-    # since this is a reply sender will be original receiver and receiver will be original sender
-    sender = message.receiver
-    receiver = message.sender
-
     client = null
     @_clientPool.acquire()
     .then (_client) =>
       client = _client
-      @_getMessage {client, receiver: sender, id: message.requestId}
-      .then (request) =>
-        # its possible that this is a reply to a message that already timed out
-        return null unless request?
-        
-        response = @_package {content: response, sender, receiver, requestId: message.requestId, timeout}
-        @_clearMessageTimeout {client, sender: receiver, receiver: sender, id: response.requestId}
+      response = @_package {content: response, sender: message.receiver, receiver: message.sender, requestId: message.requestId, timeout}
+      @_clearMessageTimeout {client, sender: message.sender, receiver: message.receiver, id: response.requestId}
+    .then (timeoutsCleared) =>
+      # its possible that this is a reply to a message that already timed out
+      if !message.timeout? or timeoutsCleared > 0
+        @_putMessage {client, receiver: response.receiver, id: response.id, message: response}
         .then =>
-          @_putMessage {client, receiver, id: response.id, message: response}
+          if timeout?
+            @_setMessageTimeout {client, sender: response.sender, receiver: response.receiver, id: response.id, timeout: response.timeout}
         .then =>
-          @_queueMessage({client, receiver, id: response.id})
+          @_queueMessage({client, receiver: response.receiver, id: response.id})
     .finally =>
       @_clientPool.release(client) if client?
 
@@ -314,6 +309,7 @@ module.exports = class Disker
               _message.receiver = if message.requestId? then message.sender else message.receiver
               _message.requestId = if message.requestId? then message.requestId else message.id
               _message.responseId = message.id if message.requestId?
+              _message.timeout = message.timeout if message.timeout?
               setImmediate ->
                 handler(_message)
               # if this handler is registered for only one time, remove handler if we have a message
